@@ -1,1 +1,5 @@
-# ExploratoryFactorAnalysis
+                                              Abstract of Submitted Paper
+
+After more than a century, factor analysis remains one of the most popular tools in applied statistics. Exploratory factor analysis tends to be driven by iterated principal axis factorization. Confirmatory factor analysis tends to rely on maximum likelihood estimation. This paper demonstrates the computational superiority of the Gauss-Newton method in minimizing the principal axis loss. On sample problems Gauss-Newton is more than three orders of magnitude faster than popular implementations of maximum likelihood factor analysis. As part of this comparison,  we derive an alternative Gauss-Newton method that leverages the MM principle of optimization. We also explore a simple perturbation correction that dramatically improves the accuracy of the factor loading matrices derived from approximate spectral decompositions. Finally, we suggest a robust version of iterated principal axis factorization that leverages the MM principle, block descent, and the Gauss-Newton method. These innovations are implemented in Julia code and applied to a sequence of representative problems.
+
+The two programs,Uncorrected.jl and FactorAnalysis.jl, generate Tables 1 and 2 of the submitted paper, respectively.
