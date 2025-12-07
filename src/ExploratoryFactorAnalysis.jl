@@ -9,7 +9,8 @@ export FactorAnalysisGN,
        FactorAnalysisLAD,
        LoadingsUpdate,
        GenerateRandomData,
-       RunTests
+       TestsBenchmark,
+       TestsAccuracy
 
 """Forms r principal components of the data matrix X."""
 function PCA(X::Matrix, r::Int)
@@ -143,7 +144,7 @@ function FactorAnalysisPartial(S::Matrix{T}, r::Int) where T <: Real
   (d, old_d, conv) = (zeros(T, p), zeros(T, p), 1.0e-8)
   L = randn(p, r) # random factor loadings
 #   println(0,"  ",norm(S - L * L' - Diagonal(d)))
-  for iter = 1:100
+  for iter = 1:500
     iters = iters + 1
     for i = 1:p # update specific variances
       d[i] = max(S[i, i] - norm(L[i, :])^2, zero(T))
@@ -169,7 +170,7 @@ function FactorAnalysisFull(S::Matrix{T}, r::Int) where T <: Real
   (d, old_d, conv) = (zeros(T, p), zeros(T, p), 1.0e-8)
   L = randn(p, r) # random factor loadings
 #   println(0,"  ",norm(S - L * L' - Diagonal(d)))
-  for iter = 1:100
+  for iter = 1:500
     iters = iters + 1
     for i = 1:p # update specific variances
       d[i] = max(S[i, i] - norm(L[i, :])^2, zero(T))
@@ -199,7 +200,7 @@ function FactorAnalysisLAD(S::Matrix{T}, r::Int, mu::T) where T <: Real
   Z = zeros(T, p, r)
   R = similar(S)
 #   println(0,"  ",norm(S - L * L', 1))
-  for iter = 1:100
+  for iter = 1:500
     iters = iters + 1
     for i = 1:p # update specific variances
       d[i] = max(S[i, i] - norm(L[i, :])^2, zero(T))
@@ -317,7 +318,7 @@ function TestsBenchmark(mu)
 end
 
 # mu = 1.0; # factors, Moreau envelope constant
-# RunTests(mu)
+# TestsBenchmark(mu)
 
 """Runs test problems of rank r and Moreau constant mu."""
 function TestsAccuracy(r, mu)
