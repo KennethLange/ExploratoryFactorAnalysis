@@ -1,0 +1,13 @@
+name = "ExploratoryFactorAnalysis"
+uuid = "a03df6c4-44ce-4811-ae2a-076447e7d7c8"
+authors = ["Xunjian-Li <11930699@mail.sustech.edu.cn> and contributors"]
+version = "1.0.0-DEV"
+
+[compat]
+julia = "1.6"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
