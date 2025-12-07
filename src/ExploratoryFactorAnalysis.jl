@@ -243,7 +243,7 @@ end
 
 
 """Runs test problems of rank r and Moreau constant mu."""
-function RunTests(mu)
+function TestsBenchmark(mu)
   n = 4000 # cases
   for p in [500] # predictors
     for r in [5] # rank
@@ -319,5 +319,28 @@ end
 # mu = 1.0; # factors, Moreau envelope constant
 # RunTests(mu)
 
+"""Runs test problems of rank r and Moreau constant mu."""
+function TestsAccuracy(r, mu)
+  @printf("%-12s | %-25s | %-6s | %-25s | %-6s\n",
+    "(n, p)", "GN", "Iters", "Partial", "Iters")
+  println("-"^90)
+  for n in [500] # cases
+    for p in [6, 10, 25, 50, 100, 250, 500] # predictors
+      (S, Y) = GenerateRandomData(n, p, r); # covariance matrix and data
+      (L1, d1, iters1) = FactorAnalysisGN(S, r);
+      (L2, d2, iters2) = FactorAnalysisPartial(S, r);
+      @printf("%-12s | %-25s | %-6s | %-25s | %-6s\n",
+        string((n, p)),
+        norm(S - L1 * L1' - Diagonal(d1)),
+        iters1,
+        norm(S - L2 * L2' - Diagonal(d2)),
+        iters2
+      )
+    end
+  end
+end
+
+# (r, mu) = (5, 1.0); # factors, Moreau envelope constant
+# TestsAccuracy(r, mu)
 
 end
