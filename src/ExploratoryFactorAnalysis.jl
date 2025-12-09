@@ -1,6 +1,7 @@
 module ExploratoryFactorAnalysis
 
-using LinearAlgebra, StatsBase, Distributions, Arpack, MultivariateStats, KrylovKit, Printf
+using LinearAlgebra, StatsBase, Distributions
+using MultivariateStats, KrylovKit, Printf, Random, DataFrames
 
 export FactorAnalysisGN, 
        FactorAnalysisMM, 
@@ -259,6 +260,17 @@ function TestsBenchmark(mu)
   trials = 5
   time = zeros(trials, 7)
   avg = zeros(7)
+  results_df = DataFrame(
+    PR_Tuple      = String[],
+    GN_Time       = Float64[],
+    Avg_Iters     = Float64[],
+    Ratio_MM      = Float64[],
+    Ratio_Partial = Float64[],
+    Ratio_Full    = Float64[],
+    Ratio_Robust  = Float64[],
+    Ratio_EM      = Float64[],
+    Ratio_CM      = Float64[]
+  )
   @printf("%-32s | %s\n", " ", "      Relative Time Ratio ( vs GN )")
   println("-"^94)
   @printf("%-12s | %-8s | %-6s | %-7s | %-7s | %-7s | %-7s | %-7s | %-7s\n", 
@@ -267,9 +279,7 @@ function TestsBenchmark(mu)
   println("-"^98)
     
   for r in [5, 10, 100, 200] # rank
-    for p in [250, 500, 1000, 2000, 4000, 8000] # predictors  
-#   for r in [5] # rank
-#     for p in [250] # predictors    
+    for p in [250, 500, 1000, 2000, 4000, 8000] # predictors    
       iters = 0
       for trial = 1:trials
         (S, Y) = GenerateRandomData(n, p, r); # covariance matrix and data
@@ -282,7 +292,7 @@ function TestsBenchmark(mu)
           time[trial, 3] = @elapsed (L3, d3, iters3) = FactorAnalysisPartial(S, r)
         end
 #       println("Partial ",norm(S - L3 * L3' - Diagonal(d3)),"  ",iters3)
-        if r <= 5 && p <= 2000
+        if r <= 5 && p <= 500
           time[trial, 4] = @elapsed (L4, d4, iters4) = FactorAnalysisFull(S, r)
         end
 #       println("Full    ",norm(S - L4 * L4' - Diagonal(d4)),"  ",iters4)
@@ -304,6 +314,18 @@ function TestsBenchmark(mu)
         end
       end
             
+      push!(results_df, (
+          string((p, r)), # PR_Tuple
+          avg[1],         # GN_Time
+          iters / trials, # Avg_Iters
+          avg[2],         # Ratio_MM
+          avg[3],         # Ratio_Partial
+          avg[4],         # Ratio_Full
+          avg[5],         # Ratio_Robust
+          avg[6],         # Ratio_EM
+          avg[7]          # Ratio_CM
+      ))
+            
     @printf("%-12s | %-8.4g | %-6.1f | %-7.5g | %-7.5g | %-7.5g | %-7.5g | %-7.5g | %-7.5g\n",
         string((p, r)),
         avg[1],
@@ -315,13 +337,18 @@ function TestsBenchmark(mu)
       fill!(time, 0.0)
     end
   end
+  return results_df
 end
-
-# mu = 1.0; # factors, Moreau envelope constant
-# TestsBenchmark(mu)
 
 """Runs test problems of rank r and Moreau constant mu."""
 function TestsAccuracy(r, mu)
+  results_df = DataFrame(
+    NP_Tuple      = String[],
+    GN_Error      = Float64[],
+    GN_Iters      = Int[],
+    Partial_Error = Float64[],
+    Partial_Iters = Int[]
+  )
   @printf("%-12s | %-25s | %-6s | %-25s | %-6s\n",
     "(n, p)", "GN", "Iters", "Partial", "Iters")
   println("-"^90)
@@ -330,18 +357,22 @@ function TestsAccuracy(r, mu)
       (S, Y) = GenerateRandomData(n, p, r); # covariance matrix and data
       (L1, d1, iters1) = FactorAnalysisGN(S, r);
       (L2, d2, iters2) = FactorAnalysisPartial(S, r);
+      gn_error = norm(S - L1 * L1' - Diagonal(d1))
+      partial_error = norm(S - L2 * L2' - Diagonal(d2))
       @printf("%-12s | %-25s | %-6s | %-25s | %-6s\n",
-        string((n, p)),
-        norm(S - L1 * L1' - Diagonal(d1)),
-        iters1,
-        norm(S - L2 * L2' - Diagonal(d2)),
-        iters2
+        string((n, p)), gn_error, iters1, partial_error, iters2
       )
+      push!(results_df, (
+        string((n, p)),  # NP_Tuple
+        gn_error,        # GN_Error
+        iters1,          # GN_Iters
+        partial_error,   # Partial_Error
+        iters2           # Partial_Iters
+      ))
+            
     end
   end
+  return results_df
 end
-
-# (r, mu) = (5, 1.0); # factors, Moreau envelope constant
-# TestsAccuracy(r, mu)
 
 end
