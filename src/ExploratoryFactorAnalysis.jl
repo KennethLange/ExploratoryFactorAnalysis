@@ -3,7 +3,8 @@ module ExploratoryFactorAnalysis
 using LinearAlgebra, StatsBase, Distributions
 using MultivariateStats, KrylovKit, Printf, Random, DataFrames
 
-export FactorAnalysisGN, 
+export ExploratoryPCA,
+       FactorAnalysisGN, 
        FactorAnalysisMM, 
        FactorAnalysisPartial, 
        FactorAnalysisFull,
@@ -14,7 +15,7 @@ export FactorAnalysisGN,
        TestsAccuracy
 
 """Forms r principal components of the data matrix X."""
-function PCA(X::Matrix, r::Int)
+function ExploratoryPCA(X::Matrix, r::Int)
   X = X .- mean(X, dims=1) # centered data
   S = cov(X) # sample covariance matrix
   (lambda, V) = eigs(S, r, which=:LR) # Arpack eigendecomposition
