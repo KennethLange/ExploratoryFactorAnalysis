@@ -23,6 +23,7 @@ Pkg.add(["LinearAlgebra", "StatsBase", "Distributions", "MultivariateStats", "Kr
 ```REPL:Julia
 Pkg.add(url="https://github.com/KennethLange/ExploratoryFactorAnalysis.git")
 using ExploratoryFactorAnalysis
+using LinearAlgebra, Random, MultivariateStats, Distributions
 ```
 
 # 🛠️ Core Functionality and Usage
