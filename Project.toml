@@ -8,10 +8,7 @@ Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 KrylovKit = "0b1a1467-8014-51b9-945f-bf0ae24f4b77"
-LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MultivariateStats = "6f286f6a-111f-5878-ab1e-185364afe411"
-Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
-Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
@@ -22,7 +19,6 @@ Distributions = "0.25"
 KrylovKit = "0.10"
 MultivariateStats = "0.10"
 StatsBase = "0.34"
-
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
