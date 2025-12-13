@@ -1,3 +1,5 @@
+__precompile__()
+
 module ExploratoryFactorAnalysis
 
 using LinearAlgebra, StatsBase, Distributions
