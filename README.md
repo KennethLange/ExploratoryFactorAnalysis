@@ -17,6 +17,7 @@ Pkg.add(["LinearAlgebra", "StatsBase", "Distributions", "MultivariateStats", "Kr
 ### Step 2: 
 **Load the Module** Save the provided code as a file named ExploratoryFactorAnalysis.jl. Then load it into your Julia session or script using the command:
 ```REPL:Julia
+using Pkg
 Pkg.add(url="https://github.com/KennethLange/ExploratoryFactorAnalysis.git")
 using ExploratoryFactorAnalysis
 ```
