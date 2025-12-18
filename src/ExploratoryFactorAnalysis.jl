@@ -362,8 +362,8 @@ function TestsAccuracy(r, mu; EigenMethod = "Arpack")
   )
 
   Random.seed!(1234)
-  @printf("%-12s | %-25s | %-6s | %-25s | %-6s\n",
-    "(n, p)", "GN", "Iters", "Partial", "Iters")
+  @printf("%-12s | %-25s | %-25s\n",
+    "(n, p)", "GN", "Partial")
   println("-"^90)
   for n in [500] # cases
     for p in [6, 10, 25, 50, 100, 250, 500] # predictors
@@ -372,15 +372,13 @@ function TestsAccuracy(r, mu; EigenMethod = "Arpack")
       (L2, d2, iters2) = FactorAnalysisPartial(S, r, EigenMethod = EigenMethod, Refine = false);
       gn_error = norm(S - L1 * L1' - Diagonal(d1))
       partial_error = norm(S - L2 * L2' - Diagonal(d2))
-      @printf("%-12s | %-25s | %-6s | %-25s | %-6s\n",
+      @printf("%-12s | %-25s | %-25s\n",
         string((n, p)), gn_error, iters1, partial_error, iters2
       )
       push!(results_df, (
         string((n, p)),  # NP_Tuple
         gn_error,        # GN_Error
-        iters1,          # GN_Iters
         partial_error,   # Partial_Error
-        iters2           # Partial_Iters
       ))            
     end
   end
