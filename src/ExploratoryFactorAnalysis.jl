@@ -156,7 +156,7 @@ end
 """Performs rank r factor analysis on S by exact factor loading 
 updates with a partial eigen-decomposition."""
 function FactorAnalysisPartial(S::Matrix{T}, r::Int; 
-  EigenMethod = "KrylofKit") where T <: Real
+  EigenMethod = "KrylofKit", Refine = true) where T <: Real
 #
   (p, iters) = (size(S, 1), 0)
   (d, old_d, conv) = (zeros(T, p), zeros(T, p), 1.0e-8)
@@ -171,7 +171,7 @@ function FactorAnalysisPartial(S::Matrix{T}, r::Int;
       S[i, i] = S[i, i] - d[i]
     end
     if EigenMethod != "KrylofKit"
-      L = LoadingsUpdate(S, r, EigenMethod = "Arpack") # update loadings
+      L = LoadingsUpdate(S, r, EigenMethod = "Arpack", Refine = Refine) # update loadings
     else
       L = LoadingsUpdate(S, r, EigenMethod = "KrylofKit")
     end
@@ -366,7 +366,7 @@ function TestsAccuracy(r, mu; EigenMethod = "Arpack")
     for p in [6, 10, 25, 50, 100, 250, 500] # predictors
       (S, Y) = GenerateRandomData(n, p, r); # covariance matrix and data
       (L1, d1, iters1) = FactorAnalysisGN(S, r);
-      (L2, d2, iters2) = FactorAnalysisPartial(S, r, EigenMethod = EigenMethod);
+      (L2, d2, iters2) = FactorAnalysisPartial(S, r, EigenMethod = EigenMethod, Refine = false);
       gn_error = norm(S - L1 * L1' - Diagonal(d1))
       partial_error = norm(S - L2 * L2' - Diagonal(d2))
       @printf("%-12s | %-25s | %-6s | %-25s | %-6s\n",
