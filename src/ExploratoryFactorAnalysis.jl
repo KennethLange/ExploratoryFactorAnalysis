@@ -45,16 +45,8 @@ function PositiveDefiniteProjection(S::Matrix{T}, r::Int) where T <: Real
   return L
 end
 
-# function LoadingsUpdate(S::Matrix{T}, r::Int) where T <: Real
-#   (lambda, V) = eigs(S, r, which=:LR) # Arpack call
-#   V = real(V) # convert to real
-#   (lambda, V) = EigenRefinement(S, V)
-#   D = Diagonal(sqrt.(max.(lambda[1:r], zero(T))))
-#   return V[:, 1:r] * D
-# end
-
 """Updates factor loadings."""
-function LoadingsUpdate(S::Matrix{T}, r::Int; EigenMethod = "KrylovKit", Refine = true) where T <: Real
+function LoadingsUpdate(S::Matrix{T}, r::Int; EigenMethod = "Arpack", Refine = true) where T <: Real
 #
   if EigenMethod == "KrylovKit"
     vals, vecs, _ = eigsolve(S, r, :LR; issymmetric=true)
@@ -156,7 +148,7 @@ end
 """Performs rank r factor analysis on S by exact factor loading 
 updates with a partial eigen-decomposition."""
 function FactorAnalysisPartial(S::Matrix{T}, r::Int; 
-  EigenMethod = "KrylofKit", Refine = true) where T <: Real
+  EigenMethod = "Arpack", Refine = true) where T <: Real
 #
   (p, iters) = (size(S, 1), 0)
   (d, old_d, conv) = (zeros(T, p), zeros(T, p), 1.0e-8)
@@ -170,11 +162,7 @@ function FactorAnalysisPartial(S::Matrix{T}, r::Int;
     for i = 1:p # adjust diagonal sample variances
       S[i, i] = S[i, i] - d[i]
     end
-    if EigenMethod != "KrylofKit"
-      L = LoadingsUpdate(S, r, EigenMethod = "Arpack", Refine = Refine) # update loadings
-    else
-      L = LoadingsUpdate(S, r, EigenMethod = "KrylofKit")
-    end
+    L = LoadingsUpdate(S, r, EigenMethod = EigenMethod, Refine = Refine) # update loadings
     for i = 1:p # restore sample variances
       S[i, i] = S[i, i] + d[i]
     end 
@@ -352,7 +340,7 @@ function TestsBenchmark(mu)
 end
 
 """Runs test problems of rank r and Moreau constant mu."""
-function TestsAccuracy(r, mu; EigenMethod = "Arpack")
+function TestsAccuracy(r, mu)
   results_df = DataFrame(
     NP_Tuple      = String[],
     GN_Error      = Float64[],
@@ -367,7 +355,7 @@ function TestsAccuracy(r, mu; EigenMethod = "Arpack")
     for p in [6, 10, 25, 50, 100, 250, 500] # predictors
       (S, Y) = GenerateRandomData(n, p, r); # covariance matrix and data
       (L1, d1, iters1) = FactorAnalysisGN(S, r);
-      (L2, d2, iters2) = FactorAnalysisPartial(S, r, EigenMethod = EigenMethod, Refine = false);
+      (L2, d2, iters2) = FactorAnalysisPartial(S, r, Refine = false);
       gn_error = norm(S - L1 * L1' - Diagonal(d1))
       partial_error = norm(S - L2 * L2' - Diagonal(d2))
       @printf("%-12s | %-25s | %-25s\n",
