@@ -366,7 +366,7 @@ function TestsAccuracy(r, mu; EigenMethod = "Arpack")
     for p in [6, 10, 25, 50, 100, 250, 500] # predictors
       (S, Y) = GenerateRandomData(n, p, r); # covariance matrix and data
       (L1, d1, iters1) = FactorAnalysisGN(S, r);
-      (L2, d2, iters2) = FactorAnalysisPartial(S, r, EigenMethod);
+      (L2, d2, iters2) = FactorAnalysisPartial(S, r, EigenMethod = EigenMethod);
       gn_error = norm(S - L1 * L1' - Diagonal(d1))
       partial_error = norm(S - L2 * L2' - Diagonal(d2))
       @printf("%-12s | %-25s | %-6s | %-25s | %-6s\n",
