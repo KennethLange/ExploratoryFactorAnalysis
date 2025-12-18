@@ -2,7 +2,7 @@ __precompile__()
 
 module ExploratoryFactorAnalysis
 
-using LinearAlgebra, StatsBase, Distributions
+using LinearAlgebra, StatsBase, Distributions, Arpack
 using MultivariateStats, KrylovKit, Printf, Random, DataFrames
 
 export ExploratoryPCA,
@@ -33,6 +33,7 @@ end
 """Projects the symmetric matrix S onto the closest positive 
 semidefinite matrix of rank r or less by full eigen-decomposition."""
 function PositiveDefiniteProjection(S::Matrix{T}, r::Int) where T <: Real
+#
   (lambda, V) = eigen(S)
   (n, p) = size(S)
   L = zeros(T, p, 0) # factor loading matrix
@@ -44,8 +45,6 @@ function PositiveDefiniteProjection(S::Matrix{T}, r::Int) where T <: Real
   return L
 end
 
-"""Projects the symmetric matrix S onto the closest positive 
-semidefinite matrix of rank r or less by partial eigen-decomposition."""
 # function LoadingsUpdate(S::Matrix{T}, r::Int) where T <: Real
 #   (lambda, V) = eigs(S, r, which=:LR) # Arpack call
 #   V = real(V) # convert to real
@@ -53,13 +52,26 @@ semidefinite matrix of rank r or less by partial eigen-decomposition."""
 #   D = Diagonal(sqrt.(max.(lambda[1:r], zero(T))))
 #   return V[:, 1:r] * D
 # end
-function LoadingsUpdate(S::Matrix{T}, r::Int) where T <: Real
+
+"""Updates factor loadings."""
+function LoadingsUpdate(S::Matrix{T}, r::Int; EigenMethod = "KrylovKit", Refine = true) where T <: Real
+#
+  if EigenMethod == "KrylovKit"
     vals, vecs, _ = eigsolve(S, r, :LR; issymmetric=true)
     r_found = min(length(vals), r)
     lambda = real.(vals[1:r_found])
     V = hcat(vecs[1:r_found]...)
     D = Diagonal(sqrt.(max.(lambda, zero(T))))
     return V * D
+  else
+    (lambda, V) = eigs(S, r, which=:LR) # Arpack call
+     V = real(V) # convert to real
+    if Refine
+      (lambda, V) = EigenRefinement(S, V)
+    end
+    D = Diagonal(sqrt.(max.(lambda[1:r], zero(T))))
+    return V[:, 1:r] * D
+  end
 end
 
 """Refines r approximate eigenvectors of the symmetric matrix S."""
@@ -143,7 +155,9 @@ end
 
 """Performs rank r factor analysis on S by exact factor loading 
 updates with a partial eigen-decomposition."""
-function FactorAnalysisPartial(S::Matrix{T}, r::Int) where T <: Real
+function FactorAnalysisPartial(S::Matrix{T}, r::Int; 
+  EigenMethod = "KrylofKit") where T <: Real
+#
   (p, iters) = (size(S, 1), 0)
   (d, old_d, conv) = (zeros(T, p), zeros(T, p), 1.0e-8)
   L = randn(p, r) # random factor loadings
@@ -156,7 +170,11 @@ function FactorAnalysisPartial(S::Matrix{T}, r::Int) where T <: Real
     for i = 1:p # adjust diagonal sample variances
       S[i, i] = S[i, i] - d[i]
     end
-    L = LoadingsUpdate(S, r) # update loadings
+    if EigenMethod != "KrylofKit"
+      L = LoadingsUpdate(S, r, EigenMethod = "Arpack") # update loadings
+    else
+      L = LoadingsUpdate(S, r, EigenMethod = "KrylofKit")
+    end
     for i = 1:p # restore sample variances
       S[i, i] = S[i, i] + d[i]
     end 
@@ -246,7 +264,6 @@ function GenerateRandomData(n, p, r)
   return (S, Y)
 end
 
-
 """Runs test problems of rank r and Moreau constant mu."""
 function TestsBenchmark(mu)
   n = 4000 # cases
@@ -288,26 +305,19 @@ function TestsBenchmark(mu)
         (S, Y) = GenerateRandomData(n, p, r); # covariance matrix and data
         time[trial, 1] = @elapsed (L1, d1, iters1) = FactorAnalysisGN(S, r)
         iters = iters + iters1
-#       println("GN      ",norm(S - L1 * L1' - Diagonal(d1)),"  ",iters1)
         time[trial, 2] = @elapsed (L2, d2, iters2) = FactorAnalysisMM(S, r)
-#       println("MM      ",norm(S - L2 * L2' - Diagonal(d2)),"  ",iters2)
         if r <= 5 
           time[trial, 3] = @elapsed (L3, d3, iters3) = FactorAnalysisPartial(S, r)
         end
-#       println("Partial ",norm(S - L3 * L3' - Diagonal(d3)),"  ",iters3)
         if r <= 5 && p <= 500
           time[trial, 4] = @elapsed (L4, d4, iters4) = FactorAnalysisFull(S, r)
         end
-#       println("Full    ",norm(S - L4 * L4' - Diagonal(d4)),"  ",iters4)
         if r <= 5
           time[trial, 5] = @elapsed (L5, d5, iters5) = FactorAnalysisLAD(S, r, mu)
         end
-#       println("Full    ",norm(S - L5 * L5' - Diagonal(d5)),"  ",iters5)
        if p <= 500 && r <= 5
          time[trial, 6] = @elapsed M1 = fit(FactorAnalysis, Y, method = :em, maxoutdim = r)
-#          println("EM algorithm ",norm(S - projection(M1) * projection(M1)' - cov(M1)))
          time[trial, 7] = @elapsed M2 = fit(FactorAnalysis, Y, method = :cm, maxoutdim = r)
-#          println("CM algorithm ",norm(S - projection(M2) * projection(M2)' - cov(M2)))
         end
       end
       for i = 1:7 # average Gauss-Newton time and ratio times
@@ -315,8 +325,7 @@ function TestsBenchmark(mu)
         if i > 1
           avg[i] = avg[i] / avg[1]
         end
-      end
-            
+      end            
       push!(results_df, (
           string((p, r)), # PR_Tuple
           avg[1],         # GN_Time
@@ -327,16 +336,14 @@ function TestsBenchmark(mu)
           avg[5],         # Ratio_Robust
           avg[6],         # Ratio_EM
           avg[7]          # Ratio_CM
-      ))
-            
+      ))            
     @printf("%-12s | %-8.4g | %-6.1f | %-7.5g | %-7.5g | %-7.5g | %-7.5g | %-7.5g | %-7.5g\n",
         string((p, r)),
         avg[1],
         iters / trials,
         avg[2], avg[3], avg[4],
         avg[5], avg[6], avg[7]
-      )
-    
+      )    
       fill!(time, 0.0)
     end
   end
@@ -344,7 +351,7 @@ function TestsBenchmark(mu)
 end
 
 """Runs test problems of rank r and Moreau constant mu."""
-function TestsAccuracy(r, mu)
+function TestsAccuracy(r, mu; EigenMethod = "Arpack")
   results_df = DataFrame(
     NP_Tuple      = String[],
     GN_Error      = Float64[],
@@ -359,7 +366,7 @@ function TestsAccuracy(r, mu)
     for p in [6, 10, 25, 50, 100, 250, 500] # predictors
       (S, Y) = GenerateRandomData(n, p, r); # covariance matrix and data
       (L1, d1, iters1) = FactorAnalysisGN(S, r);
-      (L2, d2, iters2) = FactorAnalysisPartial(S, r);
+      (L2, d2, iters2) = FactorAnalysisPartial(S, r, EigenMethod);
       gn_error = norm(S - L1 * L1' - Diagonal(d1))
       partial_error = norm(S - L2 * L2' - Diagonal(d2))
       @printf("%-12s | %-25s | %-6s | %-25s | %-6s\n",
@@ -371,8 +378,7 @@ function TestsAccuracy(r, mu)
         iters1,          # GN_Iters
         partial_error,   # Partial_Error
         iters2           # Partial_Iters
-      ))
-            
+      ))            
     end
   end
   return results_df
