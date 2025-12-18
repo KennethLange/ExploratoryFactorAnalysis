@@ -266,7 +266,7 @@ end
 
 """Runs test problems of rank r and Moreau constant mu."""
 function TestsBenchmark(mu)
-  Random.Seed!(1234)
+  Random.seed!(1234)
   n = 4000 # cases
   for p in [500] # predictors
     for r in [5] # rank
@@ -361,7 +361,7 @@ function TestsAccuracy(r, mu; EigenMethod = "Arpack")
     Partial_Iters = Int[]
   )
 
-  Random.Seed!(1234)
+  Random.seed!(1234)
   @printf("%-12s | %-25s | %-6s | %-25s | %-6s\n",
     "(n, p)", "GN", "Iters", "Partial", "Iters")
   println("-"^90)
