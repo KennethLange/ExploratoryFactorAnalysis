@@ -310,7 +310,7 @@ function TestsBenchmark(mu)
         if r <= 5 
           time[trial, 3] = @elapsed (L3, d3, iters3) = FactorAnalysisPartial(S, r)
         end
-        if r <= 5 && p <= 500
+        if r <= 5
           time[trial, 4] = @elapsed (L4, d4, iters4) = FactorAnalysisFull(S, r)
         end
         if r <= 5
