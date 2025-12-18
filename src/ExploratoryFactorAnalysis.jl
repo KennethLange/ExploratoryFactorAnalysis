@@ -373,7 +373,7 @@ function TestsAccuracy(r, mu; EigenMethod = "Arpack")
       gn_error = norm(S - L1 * L1' - Diagonal(d1))
       partial_error = norm(S - L2 * L2' - Diagonal(d2))
       @printf("%-12s | %-25s | %-25s\n",
-        string((n, p)), gn_error, iters1, partial_error, iters2
+        string((n, p)), gn_error, partial_error
       )
       push!(results_df, (
         string((n, p)),  # NP_Tuple
