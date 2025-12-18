@@ -356,9 +356,7 @@ function TestsAccuracy(r, mu; EigenMethod = "Arpack")
   results_df = DataFrame(
     NP_Tuple      = String[],
     GN_Error      = Float64[],
-    GN_Iters      = Int[],
-    Partial_Error = Float64[],
-    Partial_Iters = Int[]
+    Partial_Error = Float64[]
   )
 
   Random.seed!(1234)
