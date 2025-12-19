@@ -118,13 +118,58 @@ Pkg.add(url="https://github.com/KennethLange/ExploratoryFactorAnalysis.git")
 using ExploratoryFactorAnalysis
 (r, mu) = (5, 1.0) # rank and Moreau Constant
 accuracy_results  = TestsAccuracy(r, mu) # generates Table 1 of paper
+```
+
+```text
+| NP_Tuple   | GN_Error | Partial_Error |
+|-----------:|---------:|--------------:|
+| (500, 6)   | 0.0000   | 15.8208       |
+| (500, 10)  | 0.0510   | 15.8372       |
+| (500, 25)  | 0.3213   | 52.2618       |
+| (500, 50)  | 0.9947   | 109.5803      |
+| (500, 100) | 2.0789   | 211.8683      |
+| (500, 250) | 5.4256   | 495.3805      |
+| (500, 500) | 11.2627  | 1076.4173     |
+```
+
 
 4.2 Run extensive tests comparing the runtime ratios and average iterations of the GN, MM, Partial, Full, LAD, and standard EM/CM (from MultivariateStats.jl) methods across various dimensions ($p, r$).
 ```REPL:Julia
 using Pkg
-Pkg.add(url="https://github.com/KennethLange/ExploratoryFactorAnalysis.git")
-using ExploratoryFactorAnalysis
+# Pkg.add(url="https://github.com/KennethLange/ExploratoryFactorAnalysis.git")
+# using ExploratoryFactorAnalysis
 mu = 1.0 # Moreau Constant
 benchmark_results = TestsBenchmark(mu) # generates Table 2 of paper
+```
+
+```text
+| PR_Tuple   | GN_Time | Avg_Iters | Ratio_MM | Ratio_Partial | Ratio_Full | Ratio_Robust | Ratio_EM | Ratio_CM |
+|-----------:|--------:|----------:|---------:|--------------:|-----------:|-------------:|---------:|---------:|
+| (250, 5)   | 0.0009  | 15.0      | 2.65     | 29.00         | 82.12      | 2.29         | 862.19   | 1677.24  |
+| (500, 5)   | 0.0021  | 12.8      | 2.79     | 44.81         | 126.26     | 3.93         | 1225.56  | 5341.06  |
+| (1000, 5)  | 0.0037  | 12.6      | 2.19     | 33.17         | 273.82     | 7.04         | -        | -        |
+| (2000, 5)  | 0.0134  | 11.6      | 1.91     | 69.10         | 352.40     | 10.99        | -        | -        |
+| (4000, 5)  | 0.0441  | 12.0      | 2.44     | 94.82         | 668.76     | 19.29        | -        | -        |
+| (8000, 5)  | 0.1447  | 11.6      | 2.59     | 117.57        | 1145.62    | 27.07        | -        | -        |
+| (250, 10)  | 0.0015  | 17.4      | 2.18     | -             | -          | -            | -        | -        |
+| (500, 10)  | 0.0026  | 14.4      | 5.51     | -             | -          | -            | -        | -        |
+| (1000, 10) | 0.0066  | 12.8      | 2.18     | -             | -          | -            | -        | -        |
+| (2000, 10) | 0.0198  | 12.4      | 2.04     | -             | -          | -            | -        | -        |
+| (4000, 10) | 0.0564  | 11.8      | 2.29     | -             | -          | -            | -        | -        |
+| (8000, 10) | 0.1548  | 11.4      | 2.93     | -             | -          | -            | -        | -        |
+| (250, 100) | 0.0832  | 68.2      | 0.86     | -             | -          | -            | -        | -        |
+| (500, 100) | 0.0501  | 27.6      | 1.43     | -             | -          | -            | -        | -        |
+| (1000,100) | 0.0636  | 19.6      | 2.05     | -             | -          | -            | -        | -        |
+| (2000,100) | 0.1537  | 16.8      | 1.67     | -             | -          | -            | -        | -        |
+| (4000,100) | 0.2542  | 14.6      | 2.60     | -             | -          | -            | -        | -        |
+| (8000,100) | 0.7541  | 14.0      | 2.08     | -             | -          | -            | -        | -        |
+| (250, 200) | 0.6995  | 500.0     | 0.98     | -             | -          | -            | -        | -        |
+| (500, 200) | 0.1784  | 60.2      | 1.61     | -             | -          | -            | -        | -        |
+| (1000,200) | 0.1362  | 26.8      | 2.14     | -             | -          | -            | -        | -        |
+| (2000,200) | 0.3041  | 19.6      | 1.73     | -             | -          | -            | -        | -        |
+| (4000,200) | 0.5979  | 16.2      | 2.03     | -             | -          | -            | -        | -        |
+| (8000,200) | 1.3857  | 15.0      | 2.17     | -             | -          | -            | -        | -        |
+
+```
 
 
