@@ -45,7 +45,6 @@ The module provides several optimization routines for estimating the Factor Mode
 2.1 **FactorAnalysisGN** solves the Factor Analysis model using Gauss-Newton (GN) updates.
 
 ```REPL:julia
-(S, Y) = GenerateRandomData(n, p, r); # covariance matrix and data
 (L1, d1, iters1) = FactorAnalysisGN(S, r)
 println("GN      ",norm(S - L1 * L1' - Diagonal(d1)),"  ",iters1)
 ```
@@ -60,9 +59,14 @@ println("MM      ",norm(S - L2 * L2' - Diagonal(d2)),"  ",iters2)
 2.3 **FactorAnalysisPartial** extracts the partial eigen-decomposition (via KrylovKit.jl) of the adjusted covariance matrix. This function is efficient for large $p$ (predictors) and small $r$ (factors).
 
 ```REPL:julia
-(L3, d3, iters3) = FactorAnalysisPartial(S, r)
+(L3, d3, iters3) = FactorAnalysisPartial(S, r)  ## default: EigenMethod = "Arpack" and Refine = true
 println("Partial ",norm(S - L3 * L3' - Diagonal(d3)),"  ",iters3)
 ```
+The option **Refine = true** enables an additional correction step via the function EigenRefinement, which improves the accuracy of the extracted eigenpairs. Alternatively, users may switch to a Krylov subspace method by setting 
+```REPL:julia
+EigenMethod = "KrylovKit"
+```
+which leverages the **KrylovKit.jl** package for partial eigen-decomposition.
 
 2.4 **FactorAnalysisFull** computes a full eigen-decomposition of the adjusted covariance matrix. This method offers better precision at a higher computational cost for large matrices.
 
