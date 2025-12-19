@@ -25,7 +25,7 @@ using ExploratoryFactorAnalysis
 # 🛠️ Core Functionality and Usage
 The primary goal of EFA in this module is to estimate the factor loadings matrix $\mathbf{L}$ and specific variances vector $\mathbf{d}$ corresponding to the sample covariance matrix $\mathbf{S}$. This goal is accomplished by minimizing the norm of the residual error $\mathbf{S} - \mathbf{L}\mathbf{L}^T - \text{diag}(\mathbf{d})$.
 
-### 1. Data Generation
+## 1. Data Generation
 Use the GenerateRandomData function to create synthetic data for testing the factor analysis methods. 
 
 **Function Description**: GenerateRandomData(n, p, r) generates factor analysis data with $n$ cases, $p$ predictors, and a rank (number of factors) $r$. The function returns the sample covariance matrix $\mathbf{S}$ and the transposed, centered data matrix $\mathbf{Y}$.
@@ -39,24 +39,24 @@ r = 5     # Number of factors/rank
 (S, Y) = GenerateRandomData(n, p, r)
 ```
 
-### 2. Factor Analysis Solvers
+## 2. Factor Analysis Solvers
 The module provides several optimization routines for estimating the Factor Model:
 
-2.1 **FactorAnalysisGN** solves the Factor Analysis model using Gauss-Newton (GN) updates.
+### 2.1 **FactorAnalysisGN** solves the Factor Analysis model using Gauss-Newton (GN) updates.
 
 ```REPL:julia
 (L1, d1, iters1) = FactorAnalysisGN(S, r)
 println("GN      ",norm(S - L1 * L1' - Diagonal(d1)),"  ",iters1)
 ```
 
-2.2 **FactorAnalysisMM** uses Majorization-Minimization (MM) coupled with Gauss-Newton-like updates
+### 2.2 **FactorAnalysisMM** uses Majorization-Minimization (MM) coupled with Gauss-Newton-like updates
 
 ```REPL:julia
 (L2, d2, iters2) = FactorAnalysisMM(S, r)
 println("MM      ",norm(S - L2 * L2' - Diagonal(d2)),"  ",iters2)
 ```
 
-2.3 **FactorAnalysisPartial** extracts the partial eigen-decomposition (via KrylovKit.jl) of the adjusted covariance matrix. This function is efficient for large $p$ (predictors) and small $r$ (factors).
+### 2.3 **FactorAnalysisPartial** extracts the partial eigen-decomposition (via KrylovKit.jl) of the adjusted covariance matrix. This function is efficient for large $p$ (predictors) and small $r$ (factors).
 
 ```REPL:julia
 (L3, d3, iters3) = FactorAnalysisPartial(S, r)  ## default: EigenMethod = "Arpack" and Refine = true
@@ -68,14 +68,14 @@ EigenMethod = "KrylovKit"
 ```
 which leverages the **KrylovKit.jl** package for partial eigen-decomposition.
 
-2.4 **FactorAnalysisFull** computes a full eigen-decomposition of the adjusted covariance matrix. This method offers better precision at a higher computational cost for large matrices.
+### 2.4 **FactorAnalysisFull** computes a full eigen-decomposition of the adjusted covariance matrix. This method offers better precision at a higher computational cost for large matrices.
 
 ```REPL:julia
 (L4, d4, iters4) = FactorAnalysisFull(S, r)
 println("Full    ",norm(S - L4 * L4' - Diagonal(d4)),"  ",iters4)
 ```
 
-2.5 **FactorAnalysisLAD** implements robust factor analysis by minimizing a least absolute deviation (LAD) loss based on the Moreau Proximal Map (ProxAbsolute).
+### 2.5 **FactorAnalysisLAD** implements robust factor analysis by minimizing a least absolute deviation (LAD) loss based on the Moreau Proximal Map (ProxAbsolute).
 
 ```REPL:julia
 mu = 1.0 # Moreau Constant
@@ -83,7 +83,7 @@ mu = 1.0 # Moreau Constant
 println("Full    ",norm(S - L5 * L5' - Diagonal(d5)),"  ",iters5)
 ```
 
-2.6 **External EM/CM** algorithms
+### 2.6 **External EM/CM** algorithms
 
 ```REPL:julia
 using MultivariateStats, Distributions
@@ -93,29 +93,29 @@ M2 = fit(FactorAnalysis, Y, method = :cm, maxoutdim = r)
 println("CM algorithm ",norm(S - projection(M2) * projection(M2)' - cov(M2)))
 ``` 
 
-### 3. Auxiliary and Core Functions
+## 3. Auxiliary and Core Functions
 
-3.1 **ExploratoryPCA**: 
+### 3.1 **ExploratoryPCA**: 
 Computes the first $r$ principal components of the data matrix $\mathbf{X}$.
 
-3.2 **LoadingsUpdate**: 
+### 3.2 **LoadingsUpdate**: 
 Projects the adjusted covariance matrix onto the closest positive semidefinite matrix of rank $r$ or less based on a partial eigen-decomposition.
 
-3.3 **PositiveDefiniteProjection**: 
+### 3.3 **PositiveDefiniteProjection**: 
 Same as above, but based on a full eigen-decomposition.
 
-3.4 **EigenRefinement**: 
+### 3.4 **EigenRefinement**: 
 Refines approximate eigenvectors and eigenvalues delivered by partial eigen-decomposition.
 
-3.5 **ProxAbsolute**: 
+### 3.5 **ProxAbsolute**: 
 Evaluates the proximal map (soft thresholding) of the absolute value function. This function essential for LAD estimation. 
 
-3.6 **Benchmarking and Accuracy Testing**
+### 3.6 **Benchmarking and Accuracy Testing**
 The module provides two utility functions to compare the performance and accuracy of the implemented solvers:FunctionPurpose
 
-##### 4 Running the code
+## 4 Running the code
 
-4.1 Run tests comparing the fit ($\| \mathbf{S} - \mathbf{L}\mathbf{L}^T - \text{diag}(\mathbf{d}) \|_F$) and iteration counts of the GN and Partial methods.
+### 4.1 Run tests comparing the fit ($\| \mathbf{S} - \mathbf{L}\mathbf{L}^T - \text{diag}(\mathbf{d}) \|_F$) and iteration counts of the GN and Partial methods.
 ```REPL:Julia
 using Pkg
 Pkg.add(url="https://github.com/KennethLange/ExploratoryFactorAnalysis.git")
@@ -137,7 +137,7 @@ accuracy_results  = TestsAccuracy(r, mu) # generates Table 1 of paper
 ```
 
 
-4.2 Run extensive tests comparing the runtime ratios and average iterations of the GN, MM, Partial, Full, LAD, and standard EM/CM (from MultivariateStats.jl) methods across various dimensions ($p, r$).
+### 4.2 Run extensive tests comparing the runtime ratios and average iterations of the GN, MM, Partial, Full, LAD, and standard EM/CM (from MultivariateStats.jl) methods across various dimensions ($p, r$).
 ```REPL:Julia
 using Pkg
 # Pkg.add(url="https://github.com/KennethLange/ExploratoryFactorAnalysis.git")
