@@ -2,7 +2,7 @@ __precompile__()
 
 module ExploratoryFactorAnalysis
 
-using LinearAlgebra, StatsBase, Distributions, Arpack
+using LinearAlgebra, StatsBase, Distributions, Arpack, SnpArrays
 using MultivariateStats, KrylovKit, Printf, Random, DataFrames
 
 export ExploratoryPCA,
@@ -14,7 +14,8 @@ export ExploratoryPCA,
        LoadingsUpdate,
        GenerateRandomData,
        TestsBenchmark,
-       TestsAccuracy
+       TestsAccuracy,
+       TestGenotype
 
 """Forms r principal components of the data matrix X."""
 function ExploratoryPCA(X::Matrix, r::Int)
@@ -45,8 +46,16 @@ function PositiveDefiniteProjection(S::Matrix{T}, r::Int) where T <: Real
   return L
 end
 
+# function LoadingsUpdate(S::Matrix{T}, r::Int) where T <: Real
+#   (lambda, V) = eigs(S, r, which=:LR) # Arpack call
+#   V = real(V) # convert to real
+#   (lambda, V) = EigenRefinement(S, V)
+#   D = Diagonal(sqrt.(max.(lambda[1:r], zero(T))))
+#   return V[:, 1:r] * D
+# end
+
 """Updates factor loadings."""
-function LoadingsUpdate(S::Matrix{T}, r::Int; EigenMethod = "Arpack", Refine = true) where T <: Real
+function LoadingsUpdate(S::Matrix{T}, r::Int; EigenMethod = "KrylovKit", Refine = true) where T <: Real
 #
   if EigenMethod == "KrylovKit"
     vals, vecs, _ = eigsolve(S, r, :LR; issymmetric=true)
@@ -94,13 +103,13 @@ function ProxAbsolute(y::T, t::T) where T <: Real
 end
 
 """Performs rank r factor analysis on S by MM Gauss-Newton updates."""
-function FactorAnalysisMM(S::Matrix{T}, r::Int) where T <: Real
+function FactorAnalysisMM(S::Matrix{T}, r::Int; maxiter::Int = 500) where T <: Real
   (p, iters) = (size(S, 1), 0) # size of sample covariance matrix
   (d, old_d, conv) = (zeros(T, p), zeros(T, p), 1.0e-8)
   L = randn(p, r) # random initialization of loadings
   LtL = zeros(T, r, r)
 #   println(0,"  ",norm(S - L * L' - Diagonal(d)))
-  for iter = 1:500
+  for iter = 1:maxiter
     iters = iters + 1
     for i = 1:p # update specific variances
       d[i] = max(S[i, i] - norm(L[i, :])^2, zero(T))
@@ -118,7 +127,7 @@ end
 
 """Performs rank r factor analysis on S by standard Gauss-Newton 
 updates."""
-function FactorAnalysisGN(S::Matrix{T}, r::Int) where T <: Real
+function FactorAnalysisGN(S::Matrix{T}, r::Int; maxiter::Int = 500) where T <: Real
   (p, iters) = (size(S, 1), 0) # size of sample covariance matrix
   (d, old_d, conv) = (zeros(T, p), zeros(T, p), 1.0e-8)
   L = randn(T, p, r) # random initialization of loadings
@@ -126,7 +135,7 @@ function FactorAnalysisGN(S::Matrix{T}, r::Int) where T <: Real
   Y = zeros(T, r, r)
   Z = zeros(T, p, r)
 #   println(0,"  ",norm(S - L * L' - Diagonal(d)))
-  for iter = 1:500
+  for iter = 1:maxiter
     iters = iters + 1
     for i = 1:p # update specific variances
       d[i] = max(S[i, i] - norm(L[i, :])^2, zero(T))
@@ -147,14 +156,14 @@ end
 
 """Performs rank r factor analysis on S by exact factor loading 
 updates with a partial eigen-decomposition."""
-function FactorAnalysisPartial(S::Matrix{T}, r::Int; 
-  EigenMethod = "Arpack", Refine = true) where T <: Real
+function FactorAnalysisPartial(S::Matrix{T}, r::Int; maxiter::Int = 500, 
+  EigenMethod = "KrylovKit") where T <: Real
 #
   (p, iters) = (size(S, 1), 0)
   (d, old_d, conv) = (zeros(T, p), zeros(T, p), 1.0e-8)
   L = randn(p, r) # random factor loadings
 #   println(0,"  ",norm(S - L * L' - Diagonal(d)))
-  for iter = 1:500
+  for iter = 1:maxiter
     iters = iters + 1
     for i = 1:p # update specific variances
       d[i] = max(S[i, i] - norm(L[i, :])^2, zero(T))
@@ -162,7 +171,11 @@ function FactorAnalysisPartial(S::Matrix{T}, r::Int;
     for i = 1:p # adjust diagonal sample variances
       S[i, i] = S[i, i] - d[i]
     end
-    L = LoadingsUpdate(S, r, EigenMethod = EigenMethod, Refine = Refine) # update loadings
+    if EigenMethod != "KrylovKit"
+      L = LoadingsUpdate(S, r, EigenMethod = "Arpack") # update loadings
+    else
+      L = LoadingsUpdate(S, r, EigenMethod = "KrylovKit")
+    end
     for i = 1:p # restore sample variances
       S[i, i] = S[i, i] + d[i]
     end 
@@ -175,12 +188,12 @@ end
 
 """Performs rank r factor analysis on S by exact factor loading 
 updates with a full eigen-decomposition."""
-function FactorAnalysisFull(S::Matrix{T}, r::Int) where T <: Real
+function FactorAnalysisFull(S::Matrix{T}, r::Int; maxiter::Int = 500) where T <: Real
   (p, iters) = (size(S, 1), 0)
   (d, old_d, conv) = (zeros(T, p), zeros(T, p), 1.0e-8)
   L = randn(p, r) # random factor loadings
 #   println(0,"  ",norm(S - L * L' - Diagonal(d)))
-  for iter = 1:500
+  for iter = 1:maxiter
     iters = iters + 1
     for i = 1:p # update specific variances
       d[i] = max(S[i, i] - norm(L[i, :])^2, zero(T))
@@ -201,7 +214,7 @@ end
 
 """Performs rank r factor analysis on S by Gauss-Newton updates
 and an approximate least absolute deviation loss."""
-function FactorAnalysisLAD(S::Matrix{T}, r::Int, mu::T) where T <: Real
+function FactorAnalysisLAD(S::Matrix{T}, r::Int, mu::T; maxiter::Int = 500) where T <: Real
   (p, iters) = (size(S, 1), 0)
   (d, old_d, conv) = (zeros(T, p), zeros(T, p), 1.0e-8)
   L = randn(p, r) # factor loadings
@@ -210,7 +223,7 @@ function FactorAnalysisLAD(S::Matrix{T}, r::Int, mu::T) where T <: Real
   Z = zeros(T, p, r)
   R = similar(S)
 #   println(0,"  ",norm(S - L * L', 1))
-  for iter = 1:500
+  for iter = 1:maxiter
     iters = iters + 1
     for i = 1:p # update specific variances
       d[i] = max(S[i, i] - norm(L[i, :])^2, zero(T))
@@ -254,7 +267,6 @@ end
 
 """Runs test problems of rank r and Moreau constant mu."""
 function TestsBenchmark(mu)
-  Random.seed!(1234)
   n = 4000 # cases
   for p in [500] # predictors
     for r in [5] # rank
@@ -298,7 +310,7 @@ function TestsBenchmark(mu)
         if r <= 5 
           time[trial, 3] = @elapsed (L3, d3, iters3) = FactorAnalysisPartial(S, r)
         end
-        if r <= 5
+        if r <= 5 && p <= 500
           time[trial, 4] = @elapsed (L4, d4, iters4) = FactorAnalysisFull(S, r)
         end
         if r <= 5
@@ -340,35 +352,65 @@ function TestsBenchmark(mu)
 end
 
 """Runs test problems of rank r and Moreau constant mu."""
-function TestsAccuracy(r, mu)
+function TestsAccuracy(r, mu; EigenMethod = "Arpack")
   results_df = DataFrame(
     NP_Tuple      = String[],
     GN_Error      = Float64[],
-    Partial_Error = Float64[]
+    GN_Iters      = Int[],
+    Partial_Error = Float64[],
+    Partial_Iters = Int[]
   )
-
-  Random.seed!(1234)
-  @printf("%-12s | %-25s | %-25s\n",
-    "(n, p)", "GN", "Partial")
+  @printf("%-12s | %-25s | %-6s | %-25s | %-6s\n",
+    "(n, p)", "GN", "Iters", "Partial", "Iters")
   println("-"^90)
   for n in [500] # cases
     for p in [6, 10, 25, 50, 100, 250, 500] # predictors
       (S, Y) = GenerateRandomData(n, p, r); # covariance matrix and data
       (L1, d1, iters1) = FactorAnalysisGN(S, r);
-      (L2, d2, iters2) = FactorAnalysisPartial(S, r, Refine = false);
+      (L2, d2, iters2) = FactorAnalysisPartial(S, r, EigenMethod);
       gn_error = norm(S - L1 * L1' - Diagonal(d1))
       partial_error = norm(S - L2 * L2' - Diagonal(d2))
-      @printf("%-12s | %-25s | %-25s\n",
-        string((n, p)), gn_error, partial_error
+      @printf("%-12s | %-25s | %-6s | %-25s | %-6s\n",
+        string((n, p)), gn_error, iters1, partial_error, iters2
       )
       push!(results_df, (
         string((n, p)),  # NP_Tuple
         gn_error,        # GN_Error
+        iters1,          # GN_Iters
         partial_error,   # Partial_Error
+        iters2           # Partial_Iters
       ))            
     end
   end
   return results_df
+end
+
+function TestGenotype()
+    
+    # Fetch path to packaged example dataset.
+    bed_file = SnpArrays.datadir("EUR_subset.bed")
+    # bed_file = SnpArrays.datadir("mouse.bed") 
+    
+    # Parse the files into a compressed SnpArray object with
+    # rows as people and columns as SNP genotypes.
+    snp_data = SnpArray(bed_file);
+
+    # Compute the genotype relationship matrix
+    G = grm(snp_data, method = :GRM);
+
+    r = 5; # number of factors
+    @time M1 = fit(FactorAnalysis, G, method = :em, maxoutdim = r);
+    println("EM algorithm ",norm(G - projection(M1) * projection(M1)' - cov(M1)))
+    #@time M2 = fit(FactorAnalysis, G, method = :cm, maxoutdim = r)
+    #println("CM algorithm ",norm(G - projection(M2) * projection(M2)' - cov(M2)))
+    for i = 1:10
+      @time (F, d, iters) = FactorAnalysisMM(G, r, maxiter=1000);
+      println(i," ","MM algorithm ",iters," ",norm(G - F * F' - Diagonal(d)))
+    end
+    for i = 1:10
+      @time (F, d, iters) = FactorAnalysisGN(G, r, maxiter=1000);
+      println(i," ","GN algorithm ",iters," ",norm(G - F * F' - Diagonal(d)))
+    end
 end
 
 end

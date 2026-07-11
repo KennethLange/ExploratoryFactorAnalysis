@@ -16,6 +16,11 @@ using Test
         df = TestsBenchmark(mu)
         display(df)
     end
-
+    
+    @testset "GenotypeMatrix Tests" begin
+        println("\n=== Running Genotype Tests ===")
+        TestGenotype()
+    end
+    
 end
 
